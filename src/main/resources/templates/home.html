@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Shop - Home</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-cyan: #06b6d4;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-gradient);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .glass-navbar {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent-color);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.25);
+        }
+
+        .badge-price {
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        .btn-custom-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-custom-primary:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            color: #fff;
+        }
+
+        .category-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            color: #cbd5e1;
+            border-radius: 25px;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            user-select: none;
+        }
+
+        .category-pill:hover, .category-pill.active {
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg glass-navbar sticky-top navbar-dark py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center fw-bold fs-4 text-white" href="/">
+                <i class="fa-solid fa-bolt text-warning me-2 fs-3"></i> GraphQL Store
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/admin" class="btn btn-outline-light rounded-pill px-4 fw-semibold">
+                    <i class="fa-solid fa-user-shield me-2"></i> Admin Portal
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-5">
+        
+        <!-- Hero Section -->
+        <div class="text-center mb-5">
+            <h1 class="fw-bold display-5 mb-3 bg-clip-text text-transparent bg-gradient">Khám Phá Sản Phẩm Công Nghệ</h1>
+            <p class="text-secondary lead fs-6">Sử dụng Spring Boot 3 GraphQL API & AJAX Realtime Filtering</p>
+        </div>
+
+        <!-- Filter & Sorting Bar -->
+        <div class="glass-card p-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-md-3">
+                    <label for="categorySelect" class="form-label text-secondary fw-semibold small mb-1">
+                        <i class="fa-solid fa-filter me-1"></i> Lọc Theo Danh Mục
+                    </label>
+                    <select id="categorySelect" class="form-select bg-dark text-white border-secondary rounded-3">
+                        <option value="ALL">-- Tất cả danh mục --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-9">
+                    <label class="form-label text-secondary fw-semibold small mb-1 d-block">
+                        <i class="fa-solid fa-tags me-1"></i> Danh Mục Nhanh
+                    </label>
+                    <div id="categoryPillContainer" class="d-flex flex-wrap gap-2">
+                        <!-- Category pills rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold text-white m-0" id="sectionTitle">
+                <i class="fa-solid fa-arrow-down-short-wide me-2 text-primary"></i>Tất Cả Sản Phẩm (Giá Tăng Dần)
+            </h4>
+            <span class="badge bg-secondary rounded-pill px-3 py-2" id="productCountBadge">0 sản phẩm</span>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="row g-4" id="productGrid">
+            <!-- Dynamic products rendered via AJAX -->
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const GRAPHQL_ENDPOINT = '/graphql';
+
+        // Helper function for GraphQL AJAX POST requests
+        async function fetchGraphQL(query, variables = {}) {
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ query, variables })
+                });
+
+                const result = await response.json();
+                if (result.errors) {
+                    console.error('GraphQL Errors:', result.errors);
+                }
+                return result.data;
+            } catch (error) {
+                console.error('AJAX Fetch Error:', error);
+                return null;
+            }
+        }
+
+        // Load Categories for dropdown & filter pills
+        async function loadCategories() {
+            const query = `
+                query {
+                    allCategories {
+                        id
+                        name
+                        icon
+                    }
+                }
+            `;
+
+            const data = await fetchGraphQL(query);
+            if (!data || !data.allCategories) return;
+
+            const categories = data.allCategories;
+            const select = document.getElementById('categorySelect');
+            const pillContainer = document.getElementById('categoryPillContainer');
+
+            // Reset
+            select.innerHTML = '<option value="ALL">-- Tất cả sản phẩm (Sắp xếp theo giá) --</option>';
+            pillContainer.innerHTML = `<span class="category-pill active" data-id="ALL" onclick="onCategorySelect('ALL')"><i class="fa-solid fa-globe me-1"></i> Tất cả</span>`;
+
+            categories.forEach(cat => {
+                // Dropdown Option
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                select.appendChild(option);
+
+                // Quick Pill
+                const pill = document.createElement('span');
+                pill.className = 'category-pill';
+                pill.setAttribute('data-id', cat.id);
+                pill.onclick = () => onCategorySelect(cat.id);
+                pill.innerHTML = `<i class="fa-solid fa-folder me-1"></i> ${cat.name}`;
+                pillContainer.appendChild(pill);
+            });
+
+            select.addEventListener('change', (e) => {
+                onCategorySelect(e.target.value);
+            });
+        }
+
+        // Handle category selection
+        function onCategorySelect(categoryId) {
+            // Update UI pills state
+            document.querySelectorAll('.category-pill').forEach(pill => {
+                if (pill.getAttribute('data-id') === String(categoryId)) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            });
+
+            // Update Dropdown state
+            document.getElementById('categorySelect').value = categoryId;
+
+            if (categoryId === 'ALL') {
+                loadProductsSortedByPrice();
+            } else {
+                loadProductsByCategoryId(categoryId);
+            }
+        }
+
+        // Chức năng 1: Lấy danh sách sản phẩm sắp xếp theo giá từ thấp đến cao (productsSortedByPriceAsc)
+        async function loadProductsSortedByPrice() {
+            document.getElementById('sectionTitle').innerHTML = `
+                <i class="fa-solid fa-arrow-down-short-wide me-2 text-primary"></i>Sản Phẩm Sắp Xếp Theo Giá (Thấp -> Cao)
+            `;
+
+            const query = `
+                query {
+                    productsSortedByPriceAsc {
+                        id
+                        name
+                        price
+                        quantity
+                        description
+                        images
+                        category {
+                            id
+                            name
+                        }
+                    }
+                }
+            `;
+
+            const data = await fetchGraphQL(query);
+            if (data && data.productsSortedByPriceAsc) {
+                renderProductGrid(data.productsSortedByPriceAsc);
+            }
+        }
+
+        // Chức năng 2: Lọc sản phẩm theo Category (productsByCategoryId)
+        async function loadProductsByCategoryId(categoryId) {
+            const selectEl = document.getElementById('categorySelect');
+            const categoryName = selectEl.options[selectEl.selectedIndex]?.text || 'Danh mục';
+
+            document.getElementById('sectionTitle').innerHTML = `
+                <i class="fa-solid fa-layer-group me-2 text-info"></i>Danh Mục: ${categoryName}
+            `;
+
+            const query = `
+                query GetProductsByCategory($catId: ID!) {
+                    productsByCategoryId(categoryId: $catId) {
+                        id
+                        name
+                        price
+                        quantity
+                        description
+                        images
+                        category {
+                            id
+                            name
+                        }
+                    }
+                }
+            `;
+
+            const data = await fetchGraphQL(query, { catId: categoryId });
+            if (data && data.productsByCategoryId) {
+                renderProductGrid(data.productsByCategoryId);
+            }
+        }
+
+        // Render product cards into DOM
+        function renderProductGrid(products) {
+            const grid = document.getElementById('productGrid');
+            const badge = document.getElementById('productCountBadge');
+            badge.textContent = `${products.length} sản phẩm`;
+            grid.innerHTML = '';
+
+            if (products.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-12 text-center py-5 text-secondary">
+                        <i class="fa-solid fa-box-open fs-1 mb-3"></i>
+                        <h5>Không tìm thấy sản phẩm nào trong danh mục này</h5>
+                    </div>
+                `;
+                return;
+            }
+
+            products.forEach(p => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4';
+                col.innerHTML = `
+                    <div class="glass-card product-card h-100 p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge bg-secondary border border-secondary text-uppercase px-2 py-1 fs-7">
+                                    ${p.category ? p.category.name : 'Uncategorized'}
+                                </span>
+                                <span class="badge-price">$${p.price.toFixed(2)}</span>
+                            </div>
+                            <h5 class="fw-bold text-white mb-2">${p.name}</h5>
+                            <p class="text-secondary small line-clamp-2 mb-3">${p.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}</p>
+                        </div>
+
+                        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <span class="small text-secondary">
+                                <i class="fa-solid fa-warehouse me-1"></i> Kho: <strong class="text-white">${p.quantity}</strong>
+                            </span>
+                            <button class="btn btn-custom-primary btn-sm px-3">
+                                <i class="fa-solid fa-cart-plus me-1"></i> Mua Ngay
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCategories();
+            loadProductsSortedByPrice();
+        });
+    </script>
+</body>
+</html>
