@@ -1,3 +1,5 @@
+scalar Upload
+
 type Query {
     productsSortedByPriceAsc: [Product]
     productsByCategoryId(categoryId: ID!): [Product]
@@ -7,12 +9,12 @@ type Query {
 }
 
 type Mutation {
-    createProduct(product: ProductInput!): Product
-    updateProduct(id: ID!, product: ProductInput!): Product
+    createProduct(product: ProductInput!, file: Upload): Product
+    updateProduct(id: ID!, product: ProductInput!, file: Upload): Product
     deleteProduct(id: ID!): Boolean
 
-    createCategory(category: CategoryInput!): Category
-    updateCategory(id: ID!, category: CategoryInput!): Category
+    createCategory(category: CategoryInput!, file: Upload): Category
+    updateCategory(id: ID!, category: CategoryInput!, file: Upload): Category
     deleteCategory(id: ID!): Boolean
 }
 

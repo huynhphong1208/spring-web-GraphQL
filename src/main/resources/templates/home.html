@@ -306,6 +306,12 @@
             }
         }
 
+        function getImageSrc(filename) {
+            if (!filename) return 'https://via.placeholder.com/150?text=No+Image';
+            if (filename.startsWith('http://') || filename.startsWith('https://')) return filename;
+            return '/uploads/' + filename;
+        }
+
         // Render product cards into DOM
         function renderProductGrid(products) {
             const grid = document.getElementById('productGrid');
@@ -335,6 +341,9 @@
                                 </span>
                                 <span class="badge-price">$${p.price.toFixed(2)}</span>
                             </div>
+                            <div class="text-center mb-3">
+                                <img src="${getImageSrc(p.images)}" class="img-fluid rounded-3" style="max-height: 140px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/140?text=Product'">
+                            </div>
                             <h5 class="fw-bold text-white mb-2">${p.name}</h5>
                             <p class="text-secondary small line-clamp-2 mb-3">${p.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}</p>
                         </div>
@@ -352,6 +361,7 @@
                 grid.appendChild(col);
             });
         }
+
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {

@@ -77,6 +77,14 @@
             background: linear-gradient(135deg, #4f46e5, #4338ca);
             color: white;
         }
+
+        .img-preview-thumb {
+            width: 42px;
+            height: 42px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
     </style>
 </head>
 <body>
@@ -140,6 +148,7 @@
                             <thead>
                                 <tr class="text-secondary border-bottom border-secondary">
                                     <th>ID</th>
+                                    <th>Hình Ảnh</th>
                                     <th>Tên Sản Phẩm</th>
                                     <th>Giá ($)</th>
                                     <th>Số Lượng</th>
@@ -189,8 +198,8 @@
                             <thead>
                                 <tr class="text-secondary border-bottom border-secondary">
                                     <th>ID</th>
+                                    <th>Icon / Ảnh</th>
                                     <th>Tên Danh Mục</th>
-                                    <th>Icon / Biểu Tượng</th>
                                     <th class="text-end">Hành Động</th>
                                 </tr>
                             </thead>
@@ -253,7 +262,12 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="prodImages" class="form-label text-secondary small">Hình Ảnh (URL/Filename)</label>
+                            <label for="prodFileInput" class="form-label text-secondary small">Upload File Ảnh (Tùy chọn)</label>
+                            <input type="file" id="prodFileInput" class="form-control bg-dark text-white border-secondary" accept="image/*">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="prodImages" class="form-label text-secondary small">Hoặc Tên/URL Ảnh Có Sẵn</label>
                             <input type="text" id="prodImages" class="form-control bg-dark text-white border-secondary">
                         </div>
                     </div>
@@ -284,7 +298,12 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="catIcon" class="form-label text-secondary small">Icon (VD: folder.png, laptop-icon)</label>
+                            <label for="catFileInput" class="form-label text-secondary small">Upload File Icon (Tùy chọn)</label>
+                            <input type="file" id="catFileInput" class="form-control bg-dark text-white border-secondary" accept="image/*">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="catIcon" class="form-label text-secondary small">Hoặc Tên/URL Icon Có Sẵn</label>
                             <input type="text" id="catIcon" class="form-control bg-dark text-white border-secondary">
                         </div>
                     </div>
@@ -309,17 +328,49 @@
         let currentCategoryPage = 0;
         const PAGE_SIZE = 5;
 
-        // Core GraphQL Fetch helper
-        async function fetchGraphQL(query, variables = {}) {
+        // Core GraphQL Fetch helper supporting JSON & Multipart File Upload spec
+        async function fetchGraphQL(query, variables = {}, file = null, fileVarName = 'file') {
             try {
-                const response = await fetch(GRAPHQL_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ query, variables })
-                });
+                let response;
+
+                if (file) {
+                    // Multipart GraphQL Multipart Request Spec
+                    const formData = new FormData();
+                    
+                    const operations = {
+                        query: query,
+                        variables: { ...variables, [fileVarName]: null }
+                    };
+                    formData.append('operations', JSON.stringify(operations));
+
+                    const map = {
+                        "0": [`variables.${fileVarName}`]
+                    };
+                    formData.append('map', JSON.stringify(map));
+                    formData.append('0', file);
+
+                    response = await fetch(GRAPHQL_ENDPOINT, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    // Standard JSON GraphQL POST Request
+                    response = await fetch(GRAPHQL_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ query, variables })
+                    });
+                }
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('HTTP Error Response:', response.status, text);
+                    alert(`Lỗi Server (${response.status}): ${text || 'Không thể kết nối!'}`);
+                    return null;
+                }
 
                 const result = await response.json();
                 if (result.errors) {
@@ -329,9 +380,17 @@
                 return result.data;
             } catch (error) {
                 console.error('AJAX Fetch Error:', error);
-                alert('Lỗi kết nối Server!');
+                alert('Lỗi kết nối Server: ' + error.message);
                 return null;
             }
+
+        }
+
+        // Helper to format image URL
+        function getImageSrc(filename) {
+            if (!filename) return 'https://via.placeholder.com/40';
+            if (filename.startsWith('http://') || filename.startsWith('https://')) return filename;
+            return '/uploads/' + filename;
         }
 
         // --- PRODUCT MANAGEMENT ---
@@ -379,18 +438,21 @@
             tbody.innerHTML = '';
 
             if (pageData.content.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-secondary">Không có sản phẩm nào</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-secondary">Không có sản phẩm nào</td></tr>`;
             } else {
                 pageData.content.forEach(p => {
                     const tr = document.createElement('tr');
                     tr.className = 'border-bottom border-secondary border-opacity-25';
                     tr.innerHTML = `
                         <td class="fw-bold">${p.id}</td>
+                        <td>
+                            <img src="${getImageSrc(p.images)}" class="img-preview-thumb" onerror="this.src='https://via.placeholder.com/42?text=Image'">
+                        </td>
                         <td class="fw-semibold">${p.name}</td>
                         <td class="text-success">$${p.price.toFixed(2)}</td>
                         <td><span class="badge bg-secondary">${p.quantity}</span></td>
                         <td>${p.category ? p.category.name : '-'}</td>
-                        <td class="small text-secondary text-truncate" style="max-width: 200px;">${p.description || ''}</td>
+                        <td class="small text-secondary text-truncate" style="max-width: 180px;">${p.description || ''}</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-info me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -425,6 +487,7 @@
             document.getElementById('prodQuantity').value = p.quantity;
             document.getElementById('prodDescription').value = p.description || '';
             document.getElementById('prodImages').value = p.images || '';
+            document.getElementById('prodFileInput').value = '';
             
             populateCategorySelect(p.category ? p.category.id : null);
             productModal.show();
@@ -433,45 +496,59 @@
         async function saveProduct(e) {
             e.preventDefault();
             const id = document.getElementById('productId').value;
+            const fileInput = document.getElementById('prodFileInput');
+            const file = fileInput.files[0] || null;
+
             const productInput = {
                 name: document.getElementById('prodName').value,
                 price: parseFloat(document.getElementById('prodPrice').value),
                 quantity: parseInt(document.getElementById('prodQuantity').value),
                 description: document.getElementById('prodDescription').value,
                 images: document.getElementById('prodImages').value,
-                categoryId: document.getElementById('prodCategoryId').value
+                categoryId: parseInt(document.getElementById('prodCategoryId').value)
             };
 
-            let query, variables;
+            if (file) {
+                // Use REST Upload Endpoint for reliable file upload
+                const formData = new FormData();
+                formData.append('product', new Blob([JSON.stringify(productInput)], { type: 'application/json' }));
+                formData.append('file', file);
 
-            if (id) {
-                // Update Product Mutation
-                query = `
-                    mutation UpdateProd($id: ID!, $input: ProductInput!) {
-                        updateProduct(id: $id, product: $input) {
-                            id
-                            name
-                        }
+                const url = id ? `/api/upload/product/update/${id}` : `/api/upload/product/create`;
+                try {
+                    const res = await fetch(url, { method: 'POST', body: formData });
+                    if (res.ok) {
+                        productModal.hide();
+                        searchProducts(currentProductPage);
+                    } else {
+                        alert('Lỗi upload sản phẩm: ' + (await res.text()));
                     }
-                `;
-                variables = { id, input: productInput };
+                } catch (err) {
+                    alert('Lỗi kết nối upload: ' + err.message);
+                }
             } else {
-                // Create Product Mutation
-                query = `
-                    mutation CreateProd($input: ProductInput!) {
-                        createProduct(product: $input) {
-                            id
-                            name
+                // Use GraphQL Mutation when no file attached
+                let query, variables;
+                if (id) {
+                    query = `
+                        mutation UpdateProd($id: ID!, $input: ProductInput!) {
+                            updateProduct(id: $id, product: $input) { id name images }
                         }
-                    }
-                `;
-                variables = { input: productInput };
-            }
-
-            const data = await fetchGraphQL(query, variables);
-            if (data) {
-                productModal.hide();
-                searchProducts(currentProductPage);
+                    `;
+                    variables = { id, input: productInput };
+                } else {
+                    query = `
+                        mutation CreateProd($input: ProductInput!) {
+                            createProduct(product: $input) { id name images }
+                        }
+                    `;
+                    variables = { input: productInput };
+                }
+                const data = await fetchGraphQL(query, variables);
+                if (data) {
+                    productModal.hide();
+                    searchProducts(currentProductPage);
+                }
             }
         }
 
@@ -540,8 +617,10 @@
                     tr.className = 'border-bottom border-secondary border-opacity-25';
                     tr.innerHTML = `
                         <td class="fw-bold">${c.id}</td>
+                        <td>
+                            <img src="${getImageSrc(c.icon)}" class="img-preview-thumb" onerror="this.src='https://via.placeholder.com/42?text=Icon'">
+                        </td>
                         <td class="fw-semibold">${c.name}</td>
-                        <td><span class="badge bg-secondary"><i class="fa-solid fa-icons me-1"></i>${c.icon || 'N/A'}</span></td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-info me-1" onclick="editCategory(${JSON.stringify(c).replace(/"/g, '&quot;')})">
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -572,50 +651,67 @@
             document.getElementById('categoryId').value = c.id;
             document.getElementById('catName').value = c.name;
             document.getElementById('catIcon').value = c.icon || '';
+            document.getElementById('catFileInput').value = '';
             categoryModal.show();
         }
 
         async function saveCategory(e) {
             e.preventDefault();
             const id = document.getElementById('categoryId').value;
+            const fileInput = document.getElementById('catFileInput');
+            const file = fileInput.files[0] || null;
+
             const categoryInput = {
                 name: document.getElementById('catName').value,
                 icon: document.getElementById('catIcon').value
             };
 
-            let query, variables;
+            if (file) {
+                // Use REST Upload Endpoint for reliable file upload
+                const formData = new FormData();
+                formData.append('category', new Blob([JSON.stringify(categoryInput)], { type: 'application/json' }));
+                formData.append('file', file);
 
-            if (id) {
-                // Update Category Mutation
-                query = `
-                    mutation UpdateCat($id: ID!, $input: CategoryInput!) {
-                        updateCategory(id: $id, category: $input) {
-                            id
-                            name
-                        }
+                const url = id ? `/api/upload/category/update/${id}` : `/api/upload/category/create`;
+                try {
+                    const res = await fetch(url, { method: 'POST', body: formData });
+                    if (res.ok) {
+                        categoryModal.hide();
+                        searchCategories(currentCategoryPage);
+                        loadCategoriesList();
+                    } else {
+                        alert('Lỗi upload danh mục: ' + (await res.text()));
                     }
-                `;
-                variables = { id, input: categoryInput };
+                } catch (err) {
+                    alert('Lỗi kết nối upload: ' + err.message);
+                }
             } else {
-                // Create Category Mutation
-                query = `
-                    mutation CreateCat($input: CategoryInput!) {
-                        createCategory(category: $input) {
-                            id
-                            name
+                // Use GraphQL Mutation when no file attached
+                let query, variables;
+                if (id) {
+                    query = `
+                        mutation UpdateCat($id: ID!, $input: CategoryInput!) {
+                            updateCategory(id: $id, category: $input) { id name icon }
                         }
-                    }
-                `;
-                variables = { input: categoryInput };
-            }
-
-            const data = await fetchGraphQL(query, variables);
-            if (data) {
-                categoryModal.hide();
-                searchCategories(currentCategoryPage);
-                loadCategoriesList(); // refresh category cache
+                    `;
+                    variables = { id, input: categoryInput };
+                } else {
+                    query = `
+                        mutation CreateCat($input: CategoryInput!) {
+                            createCategory(category: $input) { id name icon }
+                        }
+                    `;
+                    variables = { input: categoryInput };
+                }
+                const data = await fetchGraphQL(query, variables);
+                if (data) {
+                    categoryModal.hide();
+                    searchCategories(currentCategoryPage);
+                    loadCategoriesList();
+                }
             }
         }
+
 
         async function deleteCategory(id, name) {
             if (!confirm(`Bạn có chắc chắn muốn xóa danh mục "${name}" (ID: ${id})?\nLưu ý: Sản phẩm thuộc danh mục này có thể bị ảnh hưởng.`)) {

@@ -6,6 +6,7 @@ import com.example.demo20_9_26.model.Category;
 import com.example.demo20_9_26.model.Product;
 import com.example.demo20_9_26.repository.CategoryRepository;
 import com.example.demo20_9_26.repository.ProductRepository;
+import com.example.demo20_9_26.service.IStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,10 +24,12 @@ public class ProductGraphQLController {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final IStorageService storageService;
 
-    public ProductGraphQLController(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public ProductGraphQLController(ProductRepository productRepository, CategoryRepository categoryRepository, IStorageService storageService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.storageService = storageService;
     }
 
     @QueryMapping
@@ -61,16 +65,21 @@ public class ProductGraphQLController {
     }
 
     @MutationMapping
-    public Product createProduct(@Argument ProductInput product) {
+    public Product createProduct(@Argument ProductInput product, @Argument MultipartFile file) {
         Category category = categoryRepository.findById(product.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + product.getCategoryId()));
+
+        String imageFileName = product.getImages();
+        if (file != null && !file.isEmpty()) {
+            imageFileName = storageService.store(file);
+        }
 
         Product newProduct = Product.builder()
                 .name(product.getName())
                 .price(product.getPrice())
                 .quantity(product.getQuantity())
                 .description(product.getDescription())
-                .images(product.getImages())
+                .images(imageFileName)
                 .category(category)
                 .build();
 
@@ -78,18 +87,25 @@ public class ProductGraphQLController {
     }
 
     @MutationMapping
-    public Product updateProduct(@Argument Long id, @Argument ProductInput product) {
+    public Product updateProduct(@Argument Long id, @Argument ProductInput product, @Argument MultipartFile file) {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
         Category category = categoryRepository.findById(product.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + product.getCategoryId()));
 
+        String imageFileName = existingProduct.getImages();
+        if (file != null && !file.isEmpty()) {
+            imageFileName = storageService.store(file);
+        } else if (product.getImages() != null && !product.getImages().trim().isEmpty()) {
+            imageFileName = product.getImages();
+        }
+
         existingProduct.setName(product.getName());
         existingProduct.setPrice(product.getPrice());
         existingProduct.setQuantity(product.getQuantity());
         existingProduct.setDescription(product.getDescription());
-        existingProduct.setImages(product.getImages());
+        existingProduct.setImages(imageFileName);
         existingProduct.setCategory(category);
 
         return productRepository.save(existingProduct);
